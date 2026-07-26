@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Picking Warehouse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ====================================================================
+     KONFIGURASI — ubah bagian ini sesuai file Google Sheets Anda
+     ==================================================================== */
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel-2:#1c2330;
+    --line:#2a323f;
+    --text:#f2f4f7; --text-dim:#8b95a5;
+    --done:#2dd4bf; --rts:#f5a623; --accent:#3b82f6; --pick:#7dd3fc;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    width:100vw; height:100vh; overflow:hidden;
+    background:var(--bg); color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+  }
+  .num{font-variant-numeric:tabular-nums;}
+  #app{width:100vw; height:100vh; display:grid; grid-template-rows:auto auto 1fr; gap:1.4vh; padding:2.2vh 2.4vw;}
+
+  /* header */
+  header{display:flex; align-items:center; justify-content:space-between;}
+  .brand{display:flex; align-items:baseline; gap:14px;}
+  .brand h1{font-family:'Archivo Black',sans-serif; font-size:2.1vw; letter-spacing:.5px; text-transform:uppercase;}
+  .brand .date{font-size:1.3vw; color:var(--text-dim); font-weight:500;}
+  .status{display:flex; align-items:center; gap:10px; font-size:1.1vw; color:var(--text-dim);}
+  .dot{width:11px; height:11px; border-radius:50%; background:var(--done); box-shadow:0 0 0 4px rgba(45,212,191,.15);}
+  .dot.stale{background:var(--rts); box-shadow:0 0 0 4px rgba(245,166,35,.15);}
+  #clock{font-weight:600; color:var(--text);}
+
+  /* kpi row */
+  .kpis{display:grid; grid-template-columns:repeat(5,1fr); gap:1.2vw;}
+  .kpi{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:1.6vh 1.6vw;}
+  .kpi p.label{font-size:1vw; color:var(--text-dim); font-weight:600; text-transform:uppercase; letter-spacing:.5px;}
+  .kpi p.value{font-family:'Archivo Black',sans-serif; font-size:2.6vw; margin-top:.4vh;}
+  .kpi.accent-done{border-color:rgba(45,212,191,.4);}
+  .kpi.accent-done p.value{color:var(--done);}
+
+  /* main grid */
+  main{display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:1.2vw; min-height:0;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:1.6vh 1.6vw; display:flex; flex-direction:column; min-height:0;}
+  .card h2{font-size:1.05vw; color:var(--text-dim); font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-bottom:1vh; display:flex; justify-content:space-between; align-items:center;}
+  .card h2 .badge{background:var(--panel-2); color:var(--text); border-radius:20px; padding:2px 10px; font-size:.9vw; font-weight:700;}
+  .chart-wrap{position:relative; flex:1; min-height:0;}
+
+  /* proses DO table */
+  .do-table-wrap{flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;}
+  .do-table{width:100%; border-collapse:collapse; font-size:.95vw;}
+  .do-table thead th{
+    text-align:left; color:var(--text-dim); font-weight:600; text-transform:uppercase;
+    font-size:.75vw; letter-spacing:.4px; padding:6px 8px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:var(--panel);
+  }
+  .do-table tbody td{padding:7px 8px; border-bottom:1px solid var(--line); color:var(--text);}
+  .do-table tbody tr:last-child td{border-bottom:none;}
+  .do-more{margin-top:.8vh; font-size:.9vw; color:var(--text-dim); text-align:center;}
+  .empty-state{flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-dim); font-size:1.1vw;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brand">
+      <h1>Report picking warehouse</h1>
+      <span class="date" id="tanggal">–</span>
+    </div>
+    <div class="status">
+      <span class="dot" id="statusDot"></span>
+      <span>Update terakhir <span id="lastUpdate" class="num">–</span></span>
+      <span id="clock" class="num">–</span>
+    </div>
+  </header>
+
+  <section class="kpis">
+    <div class="kpi accent-done"><p class="label">% Done</p><p class="value num" id="kpiDonePct">–</p></div>
+    <div class="kpi"><p class="label">Customer</p><p class="value num" id="kpiCustomer">–</p></div>
+    <div class="kpi"><p class="label">Total pick</p><p class="value num" id="kpiPick">–</p></div>
+    <div class="kpi"><p class="label">Total item</p><p class="value num" id="kpiItem">–</p></div>
+    <div class="kpi"><p class="label">Total qty</p><p class="value num" id="kpiQty">–</p></div>
+  </section>
+
+  <main>
+    <div class="card">
+      <h2>Pick per ekspedisi <span class="badge" id="eksCount">0</span></h2>
+      <div class="do-table-wrap" id="eksWrap">
+        <table class="do-table" id="eksTable">
+          <thead><tr id="eksHead"></tr></thead>
+          <tbody id="eksBody"></tbody>
+        </table>
+      </div>
+      <div class="do-more" id="eksMore"></div>
+    </div>
+
+    <div class="card">
+      <h2>DO masih proses picking <span class="badge" id="prosesCount">0</span></h2>
+      <div class="do-table-wrap" id="prosesWrap">
+        <table class="do-table" id="prosesTable">
+          <thead><tr id="prosesHead"></tr></thead>
+          <tbody id="prosesBody"></tbody>
+        </table>
+      </div>
+      <div class="do-more" id="prosesMore"></div>
+    </div>
+
+    <div class="card">
+      <h2>Leaderboard picker <span class="badge" id="pickerCount">0</span></h2>
+      <div class="do-table-wrap" id="pickerWrap">
+        <table class="do-table" id="pickerTable">
+          <thead><tr id="pickerHead"></tr></thead>
+          <tbody id="pickerBody"></tbody>
+        </table>
+      </div>
+      <div class="do-more" id="pickerMore"></div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+/* ============================================================
+   1. KONFIGURASI — WAJIB DISESUAIKAN
+   ============================================================
+   - SHEET_ID & GID diambil dari URL sheet Anda:
+     https://docs.google.com/spreadsheets/d/SHEET_ID/edit?gid=GID
+   - Sheet HARUS di-share "Anyone with the link – Viewer".
+   - RANGE_* : sel awal-akhir tiap tabel/data di tab for_Dashboard.
+     Baris kosong / baris "Total" otomatis di-skip oleh script.
+   - RANGE_PROSES: nama kolom tabel diambil otomatis dari header asli
+     Google Sheets (baris di atas P2), tidak perlu disertakan manual.
+*/
+const CONFIG = {
+  SHEET_ID: "1Rw9fGjwxRLZcNGPC4Vypx33v9tEVFxcS0gZhf_VBRWg",
+  GID: "838846077",
+  RANGE_SUMMARY:   "A2:F3",    // Tanggal | Jml_Customer | Juml_Pick
+  RANGE_STATUS:    "A21:F24",  // Print Date | Statuss | Pick
+  RANGE_EKSPEDISI: "I2:M50",   // Print Date | Ekspedisi | Done | Ready to Ship | Grand Total
+  RANGE_PICKER:    "X2:AB50",  // Print Date | Fix Picker | Jml Pick | Jml Item | Total Qty
+  RANGE_PROSES:    "P2:U50",   // detail DO masih proses picking; header kolom otomatis dari Sheets
+  EKSPEDISI_MAX_ROWS: 10,      // maksimum baris ekspedisi yang ditampilkan
+  PICKER_MAX_ROWS: 12,         // maksimum baris picker yang ditampilkan
+  PROSES_MAX_ROWS: 10,         // maksimum baris DO yang ditampilkan di layar (sisanya cukup ditandai "+N lainnya")
+  REFRESH_DATA_MINUTES: 5,     // seberapa sering data ditarik ulang dari Sheets
+  RELOAD_PAGE_MINUTES: 60      // reload penuh halaman (jaga TV browser tetap ringan)
+};
+/* ============================================================ */
+
+// Pakai JSONP (bukan fetch) supaya tidak diblokir CORS oleh Google Sheets
+// saat dashboard di-hosting di domain lain (mis. GitHub Pages).
+let jsonpCounter = 0;
+function fetchRange(range){
+  return new Promise((resolve, reject) => {
+    const cbName = 'gvizCb_' + (jsonpCounter++) + '_' + Date.now();
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Timeout mengambil range ' + range));
+    }, 15000);
+
+    function cleanup(){
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      clearTimeout(timeout);
+    }
+
+    window[cbName] = (response) => {
+      cleanup();
+      if (!response || response.status === 'error') {
+        reject(new Error('Gagal baca range ' + range + ': ' + JSON.stringify(response && response.errors)));
+        return;
+      }
+      const headers = response.table.cols.map(c => c.label || c.id);
+      const rows = response.table.rows.map(r => r.c.map(c => (c ? (c.f ?? c.v ?? "") : "")));
+      resolve({ headers, rows });
+    };
+
+    const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?gid=${CONFIG.GID}&range=${range}&tqx=out:json;responseHandler=${cbName}`;
+    const script = document.createElement('script');
+    script.src = url;
+    script.onerror = () => { cleanup(); reject(new Error('Gagal load script untuk range ' + range + ' — cek apakah sheet sudah public.')); };
+    document.body.appendChild(script);
+  });
+}
+
+function isTotalLabel(v){
+  return typeof v === "string" && v.toLowerCase().includes("total");
+}
+
+function fmt(n){ return Math.round(n).toLocaleString('id-ID'); }
+
+async function loadDashboard(){
+  try{
+    const [summaryRes, statusRes, ekspedisiRes, pickerRes, prosesRes] = await Promise.all([
+      fetchRange(CONFIG.RANGE_SUMMARY),
+      fetchRange(CONFIG.RANGE_STATUS),
+      fetchRange(CONFIG.RANGE_EKSPEDISI),
+      fetchRange(CONFIG.RANGE_PICKER),
+      fetchRange(CONFIG.RANGE_PROSES)
+    ]);
+    const summary = summaryRes.rows;
+    const status = statusRes.rows;
+    const ekspedisi = ekspedisiRes.rows;
+    const picker = pickerRes.rows;
+    const proses = prosesRes.rows;
+    const prosesHeaders = prosesRes.headers;
+
+    // --- summary / KPI ---
+    // Kolom: Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
+    // Baris dengan Status = "ALL" berisi total keseluruhan hari itu.
+    const allRow = summary.find(r => String(r[1]).trim().toUpperCase() === 'ALL') || summary[0] || [];
+    const [tanggal, , jmlCustomer, jmlPick, jmlItemAll, totalQtyAll] = allRow;
+    document.getElementById('tanggal').textContent = tanggal || '–';
+    document.getElementById('kpiCustomer').textContent = fmt(jmlCustomer || 0);
+    document.getElementById('kpiPick').textContent = fmt(jmlPick || 0);
+    document.getElementById('kpiItem').textContent = fmt(jmlItemAll || 0);
+    document.getElementById('kpiQty').textContent = fmt(totalQtyAll || 0);
+
+    // --- %Done: Jml_Pick pada baris Status="Done" dibagi Total Pick keseluruhan ---
+    let donePick = 0;
+    status.forEach(r => {
+      const label = r[1];
+      if (String(label).trim().toLowerCase() === "done") donePick += Number(r[3] || 0);
+    });
+    const totalPickAll = Number(jmlPick || 0);
+    const donePct = totalPickAll ? Math.round((donePick / totalPickAll) * 1000) / 10 : 0;
+    document.getElementById('kpiDonePct').textContent = donePct + '%';
+
+    // --- ekspedisi ---
+    // Format panjang: 1 baris per (Tanggal, Ekspedisi, Status) -> jumlahkan Jml Pick per Ekspedisi
+    const eksMap = {};
+    ekspedisi.forEach(r => {
+      const name = r[1];
+      if (!name || isTotalLabel(name)) return;
+      eksMap[name] = (eksMap[name] || 0) + Number(r[4] || 0);
+    });
+    const eksRows = Object.entries(eksMap)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, total]) => [name, fmt(total)]);
+
+    renderTable('eks', ['Ekspedisi', 'Total pick'], eksRows, CONFIG.EKSPEDISI_MAX_ROWS);
+
+    // --- picker leaderboard ---
+    const pickerRows = picker
+      .filter(r => r[1] && !isTotalLabel(r[1]))
+      .map(r => ({ name: r[1], jmlPick: Number(r[2] || 0), jmlItem: Number(r[3] || 0), qty: Number(r[4] || 0) }))
+      .sort((a, b) => b.jmlPick - a.jmlPick)
+      .map(r => [r.name, fmt(r.jmlPick), fmt(r.jmlItem), fmt(r.qty)]);
+
+    renderTable('picker', ['Picker', 'Jml pick', 'Jml item', 'Total qty'], pickerRows, CONFIG.PICKER_MAX_ROWS);
+
+    // --- DO masih proses picking (tabel) ---
+    renderTable('proses', prosesHeaders, proses.filter(r => r.some(c => c !== "")), CONFIG.PROSES_MAX_ROWS);
+
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('id-ID');
+    document.getElementById('statusDot').classList.remove('stale');
+  } catch (err){
+    console.error('Gagal memuat data dashboard:', err);
+    const dot = document.getElementById('statusDot');
+    dot.classList.add('stale');
+    dot.title = err.message || String(err);
+  }
+}
+
+function renderTable(prefix, headers, rows, maxRows){
+  const head = document.getElementById(prefix + 'Head');
+  const body = document.getElementById(prefix + 'Body');
+  const more = document.getElementById(prefix + 'More');
+  const countBadge = document.getElementById(prefix + 'Count');
+  const wrap = document.getElementById(prefix + 'Wrap');
+
+  head.innerHTML = "";
+  body.innerHTML = "";
+  more.textContent = "";
+
+  if (!rows || rows.length === 0 || !headers || headers.length === 0) {
+    wrap.innerHTML = '<div class="empty-state">Tidak ada data</div>';
+    if (countBadge) countBadge.textContent = "0";
+    return;
+  }
+
+  if (countBadge) countBadge.textContent = rows.length;
+
+  headers.forEach(h => {
+    const th = document.createElement('th');
+    th.textContent = h || "";
+    head.appendChild(th);
+  });
+
+  rows.slice(0, maxRows).forEach(r => {
+    const tr = document.createElement('tr');
+    headers.forEach((_, i) => {
+      const td = document.createElement('td');
+      td.textContent = r[i] ?? "";
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+
+  const sisa = rows.length - maxRows;
+  if (sisa > 0) more.textContent = `+${sisa} lainnya`;
+}
+
+// jam berjalan
+function tickClock(){
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('id-ID');
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// muat data pertama kali + jadwal refresh
+loadDashboard();
+setInterval(loadDashboard, CONFIG.REFRESH_DATA_MINUTES * 60 * 1000);
+
+// reload penuh halaman secara berkala (menjaga TV browser tetap stabil/ringan)
+setInterval(() => location.reload(), CONFIG.RELOAD_PAGE_MINUTES * 60 * 1000);
+</script>
+</body>
+</html>
