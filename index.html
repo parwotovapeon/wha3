@@ -181,7 +181,7 @@ function fetchRange(range){
       resolve({ headers, rows });
     };
 
-    const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?gid=${CONFIG.GID}&range=${range}&tqx=out:json;responseHandler=${cbName}`;
+    const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?gid=${CONFIG.GID}&range=${range}&tqx=out:json;responseHandler:${cbName}`;
     const script = document.createElement('script');
     script.src = url;
     script.onerror = () => { cleanup(); reject(new Error('Gagal load script untuk range ' + range + ' — cek apakah sheet sudah public.')); };
