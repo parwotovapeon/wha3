@@ -55,9 +55,9 @@
   .do-table-wrap{flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;}
   .do-table{width:100%; border-collapse:collapse; font-size:.95vw;}
   .do-table thead th{
-    text-align:left; color:var(--text-dim); font-weight:600; text-transform:uppercase;
-    font-size:.75vw; letter-spacing:.4px; padding:6px 8px; border-bottom:1px solid var(--line);
-    position:sticky; top:0; background:var(--panel);
+    text-align:left; color:#ffd60a; font-weight:800; text-transform:uppercase;
+    font-size:.78vw; letter-spacing:.5px; padding:7px 8px; border-bottom:2px solid #ffd60a;
+    position:sticky; top:0; background:var(--panel-2);
   }
   .do-table tbody td{padding:7px 8px; border-bottom:1px solid var(--line); color:var(--text);}
   .do-table tbody tr:last-child td{border-bottom:none;}
@@ -146,7 +146,7 @@ const CONFIG = {
   RANGE_PICKER:    "X2:AB50",  // Print Date | Fix Picker | Jml Pick | Jml Item | Total Qty
   RANGE_PROSES:    "P2:U50",   // detail DO masih proses picking; header kolom otomatis dari Sheets
   EKSPEDISI_MAX_ROWS: 10,      // maksimum baris ekspedisi yang ditampilkan
-  PICKER_MAX_ROWS: 12,         // maksimum baris picker yang ditampilkan
+  PICKER_MAX_ROWS: 14,         // maksimum baris picker yang ditampilkan
   PROSES_MAX_ROWS: 10,         // maksimum baris DO yang ditampilkan di layar (sisanya cukup ditandai "+N lainnya")
   REFRESH_DATA_MINUTES: 5,     // seberapa sering data ditarik ulang dari Sheets
   RELOAD_PAGE_MINUTES: 60      // reload penuh halaman (jaga TV browser tetap ringan)
@@ -238,13 +238,15 @@ async function loadDashboard(){
     ekspedisi.forEach(r => {
       const name = r[1];
       if (!name || isTotalLabel(name)) return;
-      eksMap[name] = (eksMap[name] || 0) + Number(r[4] || 0);
+      if (!eksMap[name]) eksMap[name] = { cust: 0, pick: 0 };
+      eksMap[name].cust += Number(r[3] || 0);
+      eksMap[name].pick += Number(r[4] || 0);
     });
     const eksRows = Object.entries(eksMap)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, total]) => [name, fmt(total)]);
+      .sort((a, b) => b[1].pick - a[1].pick)
+      .map(([name, v]) => [name, `${fmt(v.cust)} / ${fmt(v.pick)}`]);
 
-    renderTable('eks', ['Ekspedisi', 'Total pick'], eksRows, CONFIG.EKSPEDISI_MAX_ROWS);
+    renderTable('eks', ['Ekspedisi', 'Customer / Pick'], eksRows, CONFIG.EKSPEDISI_MAX_ROWS);
 
     // --- picker leaderboard ---
     const pickerRows = picker
@@ -255,8 +257,10 @@ async function loadDashboard(){
 
     renderTable('picker', ['Picker', 'Jml pick', 'Jml item', 'Total qty'], pickerRows, CONFIG.PICKER_MAX_ROWS);
 
-    // --- DO masih proses picking (tabel) ---
-    renderTable('proses', prosesHeaders, proses.filter(r => r.some(c => c !== "")), CONFIG.PROSES_MAX_ROWS);
+    // --- DO masih proses picking (tabel, kolom Print Date dibuang) ---
+    const prosesHeadersNoDate = prosesHeaders.slice(1);
+    const prosesRowsNoDate = proses.filter(r => r.some(c => c !== "")).map(r => r.slice(1));
+    renderTable('proses', prosesHeadersNoDate, prosesRowsNoDate, CONFIG.PROSES_MAX_ROWS);
 
     document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('id-ID');
     document.getElementById('statusDot').classList.remove('stale');
