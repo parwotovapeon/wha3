@@ -67,25 +67,23 @@
 
   /* DO masih proses picking: kolom dilebarkan supaya teks tidak wrap berlebihan */
   #prosesTable{table-layout:fixed; width:100%;}
-  #prosesTable col.c0{width:25%;}
-  #prosesTable col.c1{width:25%;}
+  #prosesTable col.c0{width:16%;}
+  #prosesTable col.c1{width:34%;}
   #prosesTable col.c2{width:28%;}
   #prosesTable col.c3{width:11%;}
   #prosesTable col.c4{width:11%;}
   .do-table thead th{
     text-align:left; color:#ffd60a; font-weight:800; text-transform:uppercase;
-    font-size:.78vw; letter-spacing:.5px; padding:7px 8px; border-bottom:2px solid #ffd60a;
+    font-size:.68vw; letter-spacing:.5px; padding:5px 7px; border-bottom:2px solid #ffd60a;
     position:sticky; top:0; background:var(--panel-2);
   }
   .do-table tbody td{padding:7px 8px; border-bottom:1px solid var(--line); color:var(--text); overflow-wrap:break-word;}
   #prosesTable tbody td:nth-child(2){white-space:nowrap;}
 
-  /* Board Picker: font & padding dikecilkan supaya 14 baris muat penuh tanpa terpotong */
-  #pickerTable thead th{font-size:.68vw; padding:5px 7px;}
+  /* Board Picker: padding baris dikecilkan supaya 14 baris muat penuh tanpa terpotong */
   #pickerTable tbody td{font-size:.82vw; padding:4px 7px;}
 
-  /* Proses Picking (Detail By No): font & padding dikecilkan supaya minimal 10 baris muat penuh */
-  #prosesTable thead th{font-size:.68vw; padding:5px 7px;}
+  /* Proses Picking (Detail By No): padding baris dikecilkan supaya minimal 10 baris muat penuh */
   #prosesTable tbody td{font-size:.8vw; padding:4px 7px; line-height:1.25;}
   .do-table tbody tr:last-child td{border-bottom:none;}
   .do-more{margin-top:.8vh; font-size:.9vw; color:var(--text-dim); text-align:center;}
