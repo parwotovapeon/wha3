@@ -43,6 +43,10 @@
   .kpi p.value{font-family:'Archivo Black',sans-serif; font-size:2.6vw; margin-top:.4vh;}
   .kpi.accent-done{border-color:rgba(45,212,191,.4);}
   .kpi.accent-done p.value{color:#22c55e;}
+  .kpi-breakdown{display:flex; flex-wrap:wrap; gap:2px 10px; margin-top:.6vh; font-size:.78vw; font-weight:700;}
+  .kpi-breakdown .bd-done{color:#22c55e;}
+  .kpi-breakdown .bd-rts{color:#38bdf8;}
+  .kpi-breakdown .bd-proc{color:#ff3b3b;}
 
   /* main grid */
   main{display:grid; grid-template-columns:0.72fr 1.68fr 1.05fr; gap:1.2vw; min-height:0;}
@@ -97,10 +101,10 @@
 
   <section class="kpis">
     <div class="kpi accent-done"><p class="label">% Done</p><p class="value num" id="kpiDonePct">–</p></div>
-    <div class="kpi"><p class="label">Customer</p><p class="value num" id="kpiCustomer">–</p></div>
-    <div class="kpi"><p class="label">Total pick</p><p class="value num" id="kpiPick">–</p></div>
-    <div class="kpi"><p class="label">Total item</p><p class="value num" id="kpiItem">–</p></div>
-    <div class="kpi"><p class="label">Total qty</p><p class="value num" id="kpiQty">–</p></div>
+    <div class="kpi"><p class="label">Customer</p><p class="value num" id="kpiCustomer">–</p><div class="kpi-breakdown" id="bdCustomer"></div></div>
+    <div class="kpi"><p class="label">Total pick</p><p class="value num" id="kpiPick">–</p><div class="kpi-breakdown" id="bdPick"></div></div>
+    <div class="kpi"><p class="label">Total item</p><p class="value num" id="kpiItem">–</p><div class="kpi-breakdown" id="bdItem"></div></div>
+    <div class="kpi"><p class="label">Total qty</p><p class="value num" id="kpiQty">–</p><div class="kpi-breakdown" id="bdQty"></div></div>
   </section>
 
   <main>
@@ -158,7 +162,7 @@ const CONFIG = {
   SHEET_ID: "1Rw9fGjwxRLZcNGPC4Vypx33v9tEVFxcS0gZhf_VBRWg",
   GID: "838846077",
   RANGE_SUMMARY:   "A2:F3",    // Tanggal | Jml_Customer | Juml_Pick
-  RANGE_STATUS:    "A21:F24",  // Print Date | Statuss | Pick
+  RANGE_STATUS:    "A21:F25",  // Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
   RANGE_EKSPEDISI: "I2:M50",   // Print Date | Ekspedisi | Done | Ready to Ship | Grand Total
   RANGE_PICKER:    "X2:AB50",  // Print Date | Fix Picker | Jml Pick | Jml Item | Total Qty
   RANGE_PROSES:    "P2:U50",   // detail DO masih proses picking; header kolom otomatis dari Sheets
@@ -239,12 +243,28 @@ async function loadDashboard(){
     document.getElementById('kpiItem').textContent = fmt(jmlItemAll || 0);
     document.getElementById('kpiQty').textContent = fmt(totalQtyAll || 0);
 
-    // --- %Done: Jml_Pick pada baris Status="Done" dibagi Total Pick keseluruhan ---
-    let donePick = 0;
+    // --- status breakdown (Done / Ready to Ship / Process Picking) ---
+    // Kolom: Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
+    const statusMap = {};
     status.forEach(r => {
-      const label = r[1];
-      if (String(label).trim().toLowerCase() === "done") donePick += Number(r[3] || 0);
+      const label = String(r[1] || '').trim();
+      if (!label || label.toUpperCase() === 'ALL' || isTotalLabel(label)) return;
+      statusMap[label] = { cust: Number(r[2] || 0), pick: Number(r[3] || 0), item: Number(r[4] || 0), qty: Number(r[5] || 0) };
     });
+
+    function breakdownHTML(metricKey){
+      const done = statusMap['Done']?.[metricKey] ?? 0;
+      const rts = statusMap['Ready to Ship']?.[metricKey] ?? 0;
+      const proc = statusMap['Process Picking']?.[metricKey] ?? 0;
+      return `<span class="bd-done">${fmt(done)} Done</span><span class="bd-rts">${fmt(rts)} Ready to Ship</span><span class="bd-proc">${fmt(proc)} Process Picking</span>`;
+    }
+    document.getElementById('bdCustomer').innerHTML = breakdownHTML('cust');
+    document.getElementById('bdPick').innerHTML = breakdownHTML('pick');
+    document.getElementById('bdItem').innerHTML = breakdownHTML('item');
+    document.getElementById('bdQty').innerHTML = breakdownHTML('qty');
+
+    // --- %Done: Jml_Pick pada baris Status="Done" dibagi Total Pick keseluruhan ---
+    const donePick = statusMap['Done']?.pick ?? 0;
     const totalPickAll = Number(jmlPick || 0);
     const donePct = totalPickAll ? Math.round((donePick / totalPickAll) * 1000) / 10 : 0;
     document.getElementById('kpiDonePct').textContent = donePct + '%';
