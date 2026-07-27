@@ -42,12 +42,13 @@
   .kpi p.label{font-size:1vw; color:var(--text-dim); font-weight:600; text-transform:uppercase; letter-spacing:.5px;}
   .kpi p.value{font-family:'Archivo Black',sans-serif; font-size:2.6vw; margin-top:.4vh;}
   .kpi.accent-done{border-color:rgba(45,212,191,.4);}
-  .kpi.accent-done p.value{color:var(--done);}
+  .kpi.accent-done p.value{color:#22c55e;}
 
   /* main grid */
   main{display:grid; grid-template-columns:0.72fr 1.68fr 1.05fr; gap:1.2vw; min-height:0;}
   .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:1.6vh 1.6vw; display:flex; flex-direction:column; min-height:0;}
-  .card h2{font-size:1.05vw; color:var(--text-dim); font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-bottom:1vh; display:flex; justify-content:space-between; align-items:center;}
+  .card h2{font-size:1.05vw; color:#ff3b3b; font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-bottom:1vh; display:flex; justify-content:space-between; align-items:center;}
+  .card h2.title-red{color:#ff3b3b;}
   .card h2 .badge{background:var(--panel-2); color:var(--text); border-radius:20px; padding:2px 10px; font-size:.9vw; font-weight:700;}
   .chart-wrap{position:relative; flex:1; min-height:0;}
 
@@ -62,17 +63,18 @@
 
   /* DO masih proses picking: kolom dilebarkan supaya teks tidak wrap berlebihan */
   #prosesTable{table-layout:fixed; width:100%;}
-  #prosesTable col.c0{width:20%;}
-  #prosesTable col.c1{width:20%;}
-  #prosesTable col.c2{width:30%;}
-  #prosesTable col.c3{width:15%;}
-  #prosesTable col.c4{width:15%;}
+  #prosesTable col.c0{width:16%;}
+  #prosesTable col.c1{width:34%;}
+  #prosesTable col.c2{width:28%;}
+  #prosesTable col.c3{width:11%;}
+  #prosesTable col.c4{width:11%;}
   .do-table thead th{
     text-align:left; color:#ffd60a; font-weight:800; text-transform:uppercase;
     font-size:.78vw; letter-spacing:.5px; padding:7px 8px; border-bottom:2px solid #ffd60a;
     position:sticky; top:0; background:var(--panel-2);
   }
   .do-table tbody td{padding:7px 8px; border-bottom:1px solid var(--line); color:var(--text); overflow-wrap:break-word;}
+  #prosesTable tbody td:nth-child(2){white-space:nowrap;}
   .do-table tbody tr:last-child td{border-bottom:none;}
   .do-more{margin-top:.8vh; font-size:.9vw; color:var(--text-dim); text-align:center;}
   .empty-state{flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-dim); font-size:1.1vw;}
@@ -103,7 +105,7 @@
 
   <main>
     <div class="card">
-      <h2>Pick per ekspedisi <span class="badge" id="eksCount">0</span></h2>
+      <h2>Proses Picking (By Ekspedisi) <span class="badge" id="eksCount">0</span></h2>
       <div class="do-table-wrap" id="eksWrap">
         <table class="do-table" id="eksTable">
           <colgroup><col class="c0"><col class="c1"></colgroup>
@@ -115,7 +117,7 @@
     </div>
 
     <div class="card">
-      <h2>DO masih proses picking <span class="badge" id="prosesCount">0</span></h2>
+      <h2>Proses Picking (Detail By No) <span class="badge" id="prosesCount">0</span></h2>
       <div class="do-table-wrap" id="prosesWrap">
         <table class="do-table" id="prosesTable">
           <colgroup><col class="c0"><col class="c1"><col class="c2"><col class="c3"><col class="c4"></colgroup>
@@ -127,7 +129,7 @@
     </div>
 
     <div class="card">
-      <h2>Leaderboard picker <span class="badge" id="pickerCount">0</span></h2>
+      <h2 class="title-red">Board Picker <span class="badge" id="pickerCount">0</span></h2>
       <div class="do-table-wrap" id="pickerWrap">
         <table class="do-table" id="pickerTable">
           <thead><tr id="pickerHead"></tr></thead>
