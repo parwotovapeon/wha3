@@ -167,8 +167,8 @@
 const CONFIG = {
   SHEET_ID: "1ZWIP0O75eCA2TswBjaJcn4C_wtbx4WH84URhYD846Co",
   GID: "169540878",
-  RANGE_SUMMARY:   "C2:H6",    // Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
-  RANGE_STATUS:    "C2:H6",    // Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
+  RANGE_SUMMARY:   "C2:H6",    // Tanggal(C) | Status(D) | Jml_Pick(E) | Jml_Item(F) | Total_Qty(G) | Jml_Customer(H)
+  RANGE_STATUS:    "C2:H6",    // Tanggal(C) | Status(D) | Jml_Pick(E) | Jml_Item(F) | Total_Qty(G) | Jml_Customer(H)
   RANGE_EKSPEDISI: "J2:M",     // Print Date | Ekspedisi (K) | Customer (L) | Jml Pick (M)
   RANGE_PICKER:    "W2:AA",    // Print Date | Fix Picker | Jml Pick | Jml Item | Total Qty
   RANGE_PROSES:    "O2:U",     // detail DO masih proses picking; header kolom otomatis dari Sheets
@@ -245,7 +245,11 @@ async function loadDashboard(){
     // Kolom: Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
     // Baris dengan Status = "ALL" berisi total keseluruhan hari itu.
     const allRow = summary.find(r => String(r[1]).trim().toUpperCase() === 'ALL') || summary[0] || [];
-    const [tanggal, , jmlCustomer, jmlPick, jmlItemAll, totalQtyAll] = allRow;
+    const tanggal = allRow[0];
+    const jmlPick = allRow[2];
+    const jmlItemAll = allRow[3];
+    const totalQtyAll = allRow[4];
+    const jmlCustomer = allRow[5];
     document.getElementById('tanggal').textContent = tanggal || '–';
     document.getElementById('kpiCustomer').textContent = fmt(jmlCustomer || 0);
     document.getElementById('kpiPick').textContent = fmt(jmlPick || 0);
@@ -253,12 +257,12 @@ async function loadDashboard(){
     document.getElementById('kpiQty').textContent = fmt(totalQtyAll || 0);
 
     // --- status breakdown (Done / Ready to Ship / Process Picking) ---
-    // Kolom: Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
+    // RANGE_STATUS = C2:H6 -> index 0=C(Tanggal), 1=D(Status), 2=E(Jml Pick), 3=F(Jml Item), 4=G(Total Qty), 5=H(Jml Customer)
     const statusMap = {};
     status.forEach(r => {
       const label = String(r[1] || '').trim();
       if (!label || label.toUpperCase() === 'ALL' || isTotalLabel(label)) return;
-      statusMap[label] = { cust: Number(r[2] || 0), pick: Number(r[3] || 0), item: Number(r[4] || 0), qty: Number(r[5] || 0) };
+      statusMap[label] = { pick: Number(r[2] || 0), item: Number(r[3] || 0), qty: Number(r[4] || 0), cust: Number(r[5] || 0) };
     });
 
     function breakdownHTML(metricKey){
