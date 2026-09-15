@@ -169,7 +169,7 @@ const CONFIG = {
   GID: "169540878",
   RANGE_SUMMARY:   "C2:H6",    // Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
   RANGE_STATUS:    "C2:H6",    // Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
-  RANGE_EKSPEDISI: "J2:M",     // Print Date | Ekspedisi | Done | Ready to Ship | Grand Total
+  RANGE_EKSPEDISI: "J2:M",     // Print Date | Ekspedisi (K) | Customer (L) | Jml Pick (M)
   RANGE_PICKER:    "W2:AA",    // Print Date | Fix Picker | Jml Pick | Jml Item | Total Qty
   RANGE_PROSES:    "O2:U",     // detail DO masih proses picking; header kolom otomatis dari Sheets
   RANGE_LASTUPDATE: "A12",     // cell berisi waktu update terakhir data di spreadsheet
@@ -279,14 +279,14 @@ async function loadDashboard(){
     document.getElementById('kpiDonePct').textContent = donePct + '%';
 
     // --- ekspedisi ---
-    // Format panjang: 1 baris per (Tanggal, Ekspedisi, Status) -> jumlahkan Jml Pick per Ekspedisi
+    // RANGE_EKSPEDISI = J2:M -> index 0=J(Print Date), 1=K(Ekspedisi), 2=L(Customer), 3=M(Jml Pick)
     const eksMap = {};
     ekspedisi.forEach(r => {
       const name = r[1];
       if (!name || isTotalLabel(name)) return;
       if (!eksMap[name]) eksMap[name] = { cust: 0, pick: 0 };
-      eksMap[name].cust += Number(r[3] || 0);
-      eksMap[name].pick += Number(r[4] || 0);
+      eksMap[name].cust += Number(r[2] || 0);
+      eksMap[name].pick += Number(r[3] || 0);
     });
     const eksRows = Object.entries(eksMap)
       .sort((a, b) => b[1].pick - a[1].pick)
