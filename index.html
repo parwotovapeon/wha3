@@ -165,13 +165,14 @@
      Google Sheets (baris di atas P2), tidak perlu disertakan manual.
 */
 const CONFIG = {
-  SHEET_ID: "1Rw9fGjwxRLZcNGPC4Vypx33v9tEVFxcS0gZhf_VBRWg",
-  GID: "838846077",
-  RANGE_SUMMARY:   "A2:F3",    // Tanggal | Jml_Customer | Juml_Pick
-  RANGE_STATUS:    "A21:F25",  // Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
-  RANGE_EKSPEDISI: "I2:M50",   // Print Date | Ekspedisi | Done | Ready to Ship | Grand Total
-  RANGE_PICKER:    "X2:AB50",  // Print Date | Fix Picker | Jml Pick | Jml Item | Total Qty
-  RANGE_PROSES:    "P2:U50",   // detail DO masih proses picking; header kolom otomatis dari Sheets
+  SHEET_ID: "1ZWIP0O75eCA2TswBjaJcn4C_wtbx4WH84URhYD846Co",
+  GID: "169540878",
+  RANGE_SUMMARY:   "C2:H6",    // Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
+  RANGE_STATUS:    "C2:H6",    // Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
+  RANGE_EKSPEDISI: "J2:M",     // Print Date | Ekspedisi | Done | Ready to Ship | Grand Total
+  RANGE_PICKER:    "W2:AA",    // Print Date | Fix Picker | Jml Pick | Jml Item | Total Qty
+  RANGE_PROSES:    "O2:U",     // detail DO masih proses picking; header kolom otomatis dari Sheets
+  RANGE_LASTUPDATE: "A12",     // cell berisi waktu update terakhir data di spreadsheet
   EKSPEDISI_MAX_ROWS: 10,      // maksimum baris ekspedisi yang ditampilkan
   PICKER_MAX_ROWS: 15,         // maksimum baris picker yang ditampilkan
   PROSES_MAX_ROWS: 15,         // maksimum baris DO yang ditampilkan di layar (sisanya cukup ditandai "+N lainnya")
@@ -224,12 +225,13 @@ function fmt(n){ return Math.round(n).toLocaleString('id-ID'); }
 
 async function loadDashboard(){
   try{
-    const [summaryRes, statusRes, ekspedisiRes, pickerRes, prosesRes] = await Promise.all([
+    const [summaryRes, statusRes, ekspedisiRes, pickerRes, prosesRes, lastUpdateRes] = await Promise.all([
       fetchRange(CONFIG.RANGE_SUMMARY),
       fetchRange(CONFIG.RANGE_STATUS),
       fetchRange(CONFIG.RANGE_EKSPEDISI),
       fetchRange(CONFIG.RANGE_PICKER),
-      fetchRange(CONFIG.RANGE_PROSES)
+      fetchRange(CONFIG.RANGE_PROSES),
+      fetchRange(CONFIG.RANGE_LASTUPDATE)
     ]);
     const summary = summaryRes.rows;
     const status = statusRes.rows;
@@ -237,6 +239,7 @@ async function loadDashboard(){
     const picker = pickerRes.rows;
     const proses = prosesRes.rows;
     const prosesHeaders = prosesRes.headers;
+    const lastUpdateValue = lastUpdateRes.rows?.[0]?.[0] ?? '';
 
     // --- summary / KPI ---
     // Kolom: Tanggal | Status | Jml_Customer | Jml_Pick | Jml_Item | Total_Qty
@@ -300,12 +303,20 @@ async function loadDashboard(){
 
     renderTable('picker', ['Picker', 'Jml pick', 'Jml item', 'Total qty'], pickerRows, CONFIG.PICKER_MAX_ROWS);
 
-    // --- DO masih proses picking (tabel, kolom Print Date dibuang) ---
-    const prosesHeadersNoDate = prosesHeaders.slice(1);
-    const prosesRowsNoDate = proses.filter(r => r.some(c => c !== "")).map(r => r.slice(1));
+    // --- DO masih proses picking (tabel, kolom Print Date & Cutoff dibuang) ---
+    const prosesHiddenCols = new Set(
+      prosesHeaders
+        .map((h, i) => (String(h || '').toLowerCase().includes('cutoff') ? i : -1))
+        .filter(i => i !== -1)
+    );
+    prosesHiddenCols.add(0); // kolom Print Date selalu dibuang
+    const prosesHeadersNoDate = prosesHeaders.filter((_, i) => !prosesHiddenCols.has(i));
+    const prosesRowsNoDate = proses
+      .filter(r => r.some(c => c !== ""))
+      .map(r => r.filter((_, i) => !prosesHiddenCols.has(i)));
     renderTable('proses', prosesHeadersNoDate, prosesRowsNoDate, CONFIG.PROSES_MAX_ROWS);
 
-    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('id-ID');
+    document.getElementById('lastUpdate').textContent = lastUpdateValue || '–';
     document.getElementById('statusDot').classList.remove('stale');
   } catch (err){
     console.error('Gagal memuat data dashboard:', err);
