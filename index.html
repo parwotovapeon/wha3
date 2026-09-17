@@ -303,7 +303,7 @@ async function loadDashboard(){
     const pickerRows = picker
       .filter(r => r[1] && !isTotalLabel(r[1]))
       .map(r => ({ name: r[1], jmlPick: Number(r[2] || 0), jmlItem: Number(r[3] || 0), qty: Number(r[4] || 0) }))
-      .sort((a, b) => b.jmlPick - a.jmlPick)
+      .sort((a, b) => b.jmlItem - a.jmlItem)
       .map(r => [r.name, fmt(r.jmlPick), fmt(r.jmlItem), fmt(r.qty)]);
 
     renderTable('picker', ['Picker', 'Jml pick', 'Jml item', 'Total qty'], pickerRows, CONFIG.PICKER_MAX_ROWS);
