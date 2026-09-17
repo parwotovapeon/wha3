@@ -98,11 +98,11 @@
     <div class="brand">
       <h1>Report picking warehouse</h1>
       <span class="date" id="tanggal">–</span>
+      <span id="clock" class="num">–</span>
     </div>
     <div class="status">
       <span class="dot" id="statusDot"></span>
       <span>Update terakhir <span id="lastUpdate" class="num">–</span></span>
-      <span id="clock" class="num">–</span>
     </div>
   </header>
 
@@ -174,8 +174,8 @@ const CONFIG = {
   RANGE_PICKER:    "W2:AA",    // Print Date | Fix Picker | Jml Pick | Jml Item | Total Qty
   RANGE_PROSES:    "O2:U",     // detail DO masih proses picking; header kolom otomatis dari Sheets
   RANGE_LASTUPDATE: "A12",     // cell berisi waktu update terakhir data di spreadsheet
-  EKSPEDISI_MAX_ROWS: 15,      // maksimum baris ekspedisi yang ditampilkan
-  PICKER_MAX_ROWS: 20,         // maksimum baris picker yang ditampilkan
+  EKSPEDISI_MAX_ROWS: 10,      // maksimum baris ekspedisi yang ditampilkan
+  PICKER_MAX_ROWS: 15,         // maksimum baris picker yang ditampilkan
   PROSES_MAX_ROWS: 15,         // maksimum baris DO yang ditampilkan di layar (sisanya cukup ditandai "+N lainnya")
   REFRESH_DATA_MINUTES: 5,     // seberapa sering data ditarik ulang dari Sheets
   RELOAD_PAGE_MINUTES: 60      // reload penuh halaman (jaga TV browser tetap ringan)
@@ -303,7 +303,7 @@ async function loadDashboard(){
     const pickerRows = picker
       .filter(r => r[1] && !isTotalLabel(r[1]))
       .map(r => ({ name: r[1], jmlPick: Number(r[2] || 0), jmlItem: Number(r[3] || 0), qty: Number(r[4] || 0) }))
-      .sort((a, b) => b.jmlItem - a.jmlItem)
+      .sort((a, b) => b.jmlPick - a.jmlPick)
       .map(r => [r.name, fmt(r.jmlPick), fmt(r.jmlItem), fmt(r.qty)]);
 
     renderTable('picker', ['Picker', 'Jml pick', 'Jml item', 'Total qty'], pickerRows, CONFIG.PICKER_MAX_ROWS);
@@ -331,24 +331,36 @@ async function loadDashboard(){
   }
 }
 
+const tableTemplates = {};
 function renderTable(prefix, headers, rows, maxRows){
+  const wrap = document.getElementById(prefix + 'Wrap');
+  if (!tableTemplates[prefix]) tableTemplates[prefix] = wrap.innerHTML;
+
+  // buang baris yang semua selnya kosong/whitespace, biar tidak muncul baris "hantu"
+  const cleanRows = (rows || []).filter(r => (r || []).some(c => String(c ?? '').trim() !== ''));
+
+  if (cleanRows.length === 0 || !headers || headers.length === 0) {
+    wrap.innerHTML = '<div class="empty-state">Tidak ada data</div>';
+    const countBadge0 = document.getElementById(prefix + 'Count');
+    if (countBadge0) countBadge0.textContent = "0";
+    return;
+  }
+
+  // kalau sebelumnya kosong (wrap sudah diganti jadi empty-state), pulihkan struktur tabelnya dulu
+  if (!document.getElementById(prefix + 'Head')) {
+    wrap.innerHTML = tableTemplates[prefix];
+  }
+
   const head = document.getElementById(prefix + 'Head');
   const body = document.getElementById(prefix + 'Body');
   const more = document.getElementById(prefix + 'More');
   const countBadge = document.getElementById(prefix + 'Count');
-  const wrap = document.getElementById(prefix + 'Wrap');
 
   head.innerHTML = "";
   body.innerHTML = "";
   more.textContent = "";
 
-  if (!rows || rows.length === 0 || !headers || headers.length === 0) {
-    wrap.innerHTML = '<div class="empty-state">Tidak ada data</div>';
-    if (countBadge) countBadge.textContent = "0";
-    return;
-  }
-
-  if (countBadge) countBadge.textContent = rows.length;
+  if (countBadge) countBadge.textContent = cleanRows.length;
 
   headers.forEach(h => {
     const th = document.createElement('th');
@@ -356,7 +368,7 @@ function renderTable(prefix, headers, rows, maxRows){
     head.appendChild(th);
   });
 
-  rows.slice(0, maxRows).forEach(r => {
+  cleanRows.slice(0, maxRows).forEach(r => {
     const tr = document.createElement('tr');
     headers.forEach((_, i) => {
       const td = document.createElement('td');
@@ -366,7 +378,7 @@ function renderTable(prefix, headers, rows, maxRows){
     body.appendChild(tr);
   });
 
-  const sisa = rows.length - maxRows;
+  const sisa = cleanRows.length - maxRows;
   if (sisa > 0) more.textContent = `+${sisa} lainnya`;
 }
 
