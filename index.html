@@ -231,8 +231,8 @@ function fmt(n){ return Math.round(n).toLocaleString('id-ID'); }
 async function loadDashboard(){
   try{
     const [summaryRes, statusRes, ekspedisiRes, pickerRes, prosesRes, lastUpdateRes] = await Promise.all([
-      fetchRange(CONFIG.RANGE_SUMMARY, 0),
-      fetchRange(CONFIG.RANGE_STATUS, 0),
+      fetchRange(CONFIG.RANGE_SUMMARY, 1),
+      fetchRange(CONFIG.RANGE_STATUS, 1),
       fetchRange(CONFIG.RANGE_EKSPEDISI, 0),
       fetchRange(CONFIG.RANGE_PICKER, 1),
       fetchRange(CONFIG.RANGE_PROSES, 1),
@@ -256,10 +256,10 @@ async function loadDashboard(){
     const totalQtyAll = allRow[4];
     const jmlCustomer = allRow[5];
     document.getElementById('tanggal').textContent = tanggal || '–';
-    document.getElementById('kpiCustomer').textContent = fmt(jmlCustomer || 0);
-    document.getElementById('kpiPick').textContent = fmt(jmlPick || 0);
-    document.getElementById('kpiItem').textContent = fmt(jmlItemAll || 0);
-    document.getElementById('kpiQty').textContent = fmt(totalQtyAll || 0);
+    document.getElementById('kpiCustomer').textContent = fmt(Number(jmlCustomer) || 0);
+    document.getElementById('kpiPick').textContent = fmt(Number(jmlPick) || 0);
+    document.getElementById('kpiItem').textContent = fmt(Number(jmlItemAll) || 0);
+    document.getElementById('kpiQty').textContent = fmt(Number(totalQtyAll) || 0);
 
     // --- status breakdown (Done / Ready to Ship / Process Picking) ---
     // RANGE_STATUS = C2:H6 -> index 0=C(Tanggal), 1=D(Status), 2=E(Jml Pick), 3=F(Jml Item), 4=G(Total Qty), 5=H(Jml Customer)
